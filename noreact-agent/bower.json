@@ -1,0 +1,10 @@
+{
+    "name":"noreact-agent",
+    "main":[
+        "./public/css/style.css",
+        "./public/js/site.js"
+    ],
+    "dependencies":{
+        "bootstrap":"~3.0.x"
+    }
+}

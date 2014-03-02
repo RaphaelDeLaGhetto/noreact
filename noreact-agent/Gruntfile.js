@@ -1,0 +1,229 @@
+'use strict';
+
+var gebo = require('gebo-server')();
+var utils = gebo.utils,
+    nconf = require('nconf');
+
+nconf.file({ file: 'gebo.json' });
+var db = new gebo.schemata.gebo(nconf.get('email')),
+    actions = gebo.actions;
+
+module.exports = function (grunt) {
+
+    // Project configuration.
+    grunt.initConfig({
+
+        // Metadata.
+        pkg: grunt.file.readJSON('package.json'),
+        banner: '/*! <%= pkg.name %> - v<%= pkg.version %> - ' +
+                   '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
+                   '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
+                   '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
+                   ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
+        nodeunit: {
+            files: ['test/**/*.js', '!test/**/mocks/*.js']
+        },
+        jshint: {
+            options: {
+                jshintrc: '.jshintrc'
+            },
+            gruntfile: {
+                src: 'Gruntfile.js'
+            },
+            apps: {
+                src: ['app/**/*.js']
+            },
+            config: {
+                src: ['config/**/*.js']
+            },
+            lib: {
+                src: ['lib/**/*.js']
+            },
+            routes: {
+                src: ['routes/**/*.js']
+            },
+//            test: {
+//                src: ['test/**/*.js']
+//            },
+        },
+        watch: {
+            gruntfile: {
+                files: '<%= jshint.gruntfile.src %>',
+                tasks: ['jshint:gruntfile']
+            },
+            lib: {
+                files: '<%= jshint.lib.src %>',
+                tasks: ['jshint:lib', 'nodeunit']
+            },
+            test: {
+                files: '<%= jshint.test.src %>',
+                tasks: ['jshint:test', 'nodeunit']
+            },
+        },
+    });
+
+    // These plugins provide necessary tasks.
+    grunt.loadNpmTasks('grunt-contrib-nodeunit');
+    grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-watch');
+
+    // Default task.
+    grunt.registerTask('default', ['jshint', 'nodeunit']);
+
+    /** 
+     * Thank you to jaredhanson/passport-local
+     * https://github.com/jaredhanson/passport-local
+     */
+    grunt.registerTask('dbseed', 'seed the database', function () {
+        grunt.task.run('registeragent:admin:admin@example.com:secret:true');
+        grunt.task.run('registeragent:bob:bob@example.com:secret:false');
+        grunt.task.run('addfriend:bob:bob@example.com:admin@example.com');
+        grunt.task.run('addfriend:admin:admin@example.com:bob@example.com');
+        grunt.task.run('setpermission:bob@example.com:admin@example.com:gebo-server@example.com:true:false:false');
+        grunt.task.run('setpermission:admin@example.com:bob@example.com:gebo-server@example.com:true:false:false');
+
+        console.log('           ******** Heads up! *********');
+        console.log('This task is intended for experimental purposes only');
+        console.log('Make sure you delete the \'bob\' and \'admin\' accounts');
+        console.log('before you expose this gebo to the world.');
+      });
+
+    grunt.registerTask('registeragent', 'add an agent to the database',
+        function (usr, emailaddress, pass, adm) {
+            // convert adm string to bool
+            adm = (adm === 'true');
+
+            var agent = new db.registrantModel({
+                name: usr,
+                email: emailaddress,
+                password: pass,
+                admin: adm
+              });
+    
+            // save call is async, put grunt into async mode to work
+            var done = this.async();
+
+            agent.save(function (err) {
+                if (err) {
+                  console.log('Error: ' + err);
+                  done(false);
+                }
+                else {
+                  console.log('Registered ' + agent.name);
+                  actions.createDatabase({ admin: true,
+                                           dbName: utils.getMongoDbName(emailaddress) },
+                                         { content: { profile: agent } }).
+                    then(function() {
+                        done();
+                      }).
+                    catch(function(err) {
+                        if (err) {
+                          console.log(err);
+                          done(false);
+                        }
+                        done();
+                      });
+                }
+              });
+          });
+
+    grunt.registerTask('dbdrop', 'drop the database',
+        function () {
+            // async mode
+            var done = this.async();
+
+            db.connection.db.on('open', function () {
+                db.connection.db.dropDatabase(function (err) {
+                    if (err) {
+                      console.log('Error: ' + err);
+                      done(false);
+                    }
+                    else {
+                      console.log('Successfully dropped db');
+                      done();
+                    }
+                  });
+              })
+          });
+
+    /**
+     * addfriend
+     */
+    grunt.registerTask('addfriend', 'add a friend to the agent specified',
+        function (name, email, agentEmail, geboUri) {
+
+            // Put grunt into async mode
+            var done = this.async();
+ 
+            utils.getPrivateKeyAndCertificate().
+                then(function(pair) {
+                    var agentDb = new gebo.schemata.agent(agentEmail);
+        
+                    var friend = new agentDb.friendModel({
+                            name: name,
+                            email: email,
+                            uri: geboUri,
+                            myPrivateKey: pair.privateKey,
+                            myCertificate: pair.certificate,
+                        });
+        
+                    // Can't modify ID in findOneAndUpdate
+                    friend._id = undefined;
+       
+                    agentDb.friendModel.findOneAndUpdate({ email: friend.email },
+                            friend.toObject(),
+                            { upsert: true },
+                            function (err) {
+                                if (err) {
+                                  console.log('Error: ' + err);
+                                  done(false);
+                                }
+                                else {
+                                  console.log('Saved friend: ' + friend.name);
+                                  done();
+                                }
+                              });
+                  }).
+                catch(function(err) {
+                    console.log(err);
+                    done();
+                  });
+          });
+
+    /**
+     * setpermission
+     */
+    grunt.registerTask('setpermission', 'Set access to an agent\'s resource',
+        function(friendAgent, ownerAgent, resource, read, write, execute) {
+            var agentDb = new gebo.schemata.agent(ownerAgent);
+            
+            // Save call is async. Put grunt into async mode to work
+            var done = this.async();
+
+            agentDb.friendModel.findOne({ email: friendAgent },
+                function(err, friend) {
+                    if (err) {
+                      console.log(err);
+                    }
+
+                    var index = utils.getIndexOfObject(friend.hisPermissions, 'email', resource);
+
+                    if (index > -1) {
+                      friend.hisPermissions.splice(index, 1);
+                    }
+                    friend.hisPermissions.push({ email: resource,
+                                                 read: read === 'true', 
+                                                 write: write === 'true', 
+                                                 execute: execute === 'true', 
+                                               });
+
+                    friend.save(function(err) {
+                        if (err) {
+                          console.log(err);
+                        }
+                        done();
+                      });
+                  });
+          });
+  };
+

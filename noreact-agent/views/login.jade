@@ -1,0 +1,17 @@
+extends layout
+
+block content
+    .container
+        .col-xs-3
+            form.form-signin(action="/login", method="post")
+                if (agent)
+                    p.lead Try logging in, #{agent.name}
+                    input.form-control(type="text", name="username", value="#{agent.email}", required, autofocus)
+                else
+                    input.form-control(type="text", name="username", placeholder="Email", required)
+                input.form-control(type="password", name="password", placeholder="Password")
+                br
+                button.btn.btn-lg.btn-primary.btn-block(type="submit") Sign in
+            p
+                small Hint - bob@example.com:secret
+    

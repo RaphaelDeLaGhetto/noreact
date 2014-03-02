@@ -1,0 +1,44 @@
+{
+  "name": "noreact-agent",
+  "description": "Easily search records of reactions to food and drugs",
+  "version": "0.0.0",
+  "homepage": "noreact.ca",
+  "author": {
+    "name": "Daniel Bidulock, Yanfen Hao, Briana Thayne, Mike Roberts",
+    "email": "daniel@capitolhill.ca, yanfen.hao@gmail.com, briana.thayne@gmailcom, mike@web-dev.ca",
+    "url": "noreact.ca"
+  },
+  "repository": {
+    "type": "git",
+    "url": "dv.capitolhill.ca:/opt/git/noreact-agent.git/"
+  },
+  "bugs": {
+    "url": ""
+  },
+  "main": "noreact-agent.js",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "scripts": {
+    "test": "grunt nodeunit"
+  },
+  "dependencies": {
+    "gebo-server": "*",
+    "mongoose": "*",
+    "nconf": "*",
+    "q": "*",
+    "gebo-utils": "0.0.1"
+  },
+  "devDependencies": {
+    "database-cleaner": "~0.7.0",
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.6.2",
+    "grunt-contrib-nodeunit": "~0.2.0",
+    "grunt-contrib-watch": "~0.4.0",
+    "nock": "~0.22.1"
+  },
+  "keywords": [
+    "gebo",
+    "agent"
+  ]
+}
