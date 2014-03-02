@@ -1,0 +1,40 @@
+<div class="col-lg-12 text-center">
+
+<div class="text-left text-info productSearchBody">
+    <img src="images/search-mag.png" class="pull-left"><span class="productSearchText">Lithium</span>
+</div>
+    <div class="row">
+        <div class="col-md-12 filterResults text-left" ng-click="showFilters()">
+            <span>Filter Results > </span>
+
+            <div ng-show="filterResults">
+                <hr>
+                Gender:
+                <select  ng-model="search.gender">
+                    <option>Both</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+<table class="table table-striped">
+    <tr ng-repeat="record in searchResults | gender: search">
+
+        <td>{{record.AdverseReactionTerms}}
+            <span class="label label-primary pull-right" ng-show="isFemale(record.Gender)">{{record.Age}}</span>
+            <span class="label label-danger pull-right" ng-show="isMale(record.Gender)">{{record.Age}}</span>
+
+            <div ng-show="moreDetails[someIDgoesHERE]">{{record.InitialReceivedDate}}<br>
+                {{record.Gender}},  Aged {{record.Age}} {{record.AgeUnit}}<br>
+                {{record.HealthProductRole}}<br>
+                {{record.ProductDescription}}
+            </div>
+
+        </td>
+
+
+    </tr>
+
+</table>

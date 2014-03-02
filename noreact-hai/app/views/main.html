@@ -1,0 +1,31 @@
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3 text-center">
+            <p>&nbsp;</p>
+
+            <div class="form-group">
+                <input type="text" class="form-control form-group input-lg" id="search" ng-model="terms" typeahead="drug for drug in drugs | filter:$viewValue | limitTo:8" placeholder='Drug or health product name'>
+                <br />
+                <button type="submit" style="margin-top:10px;" class="btn btn-primary pull-right" ng-click="search(terms)">Search</button>
+            </div>
+
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+        </div>
+    </div>
+
+    <div class="col-lg-12 text-center" ng-show="dataReceived">
+Number of Reports: {{searchResults.total_reports}} | Men: {{searchResults.men}} | Women: {{searchResults.women}}
+        <div class="text-left text-info productSearchBody">
+            <img src="images/search-mag.png" class="pull-left"><span class="productSearchText">{{terms}}</span>
+        </div>
+
+    <table class="table table-striped">
+        <tr ng-repeat="reaction in searchResults.reactions">
+
+            <td class="text-left">{{reaction.reaction_name}}
+                <span class="label label-primary pull-right">{{reaction.num_occur}} Report(s)</span>
+
+            </td>
+        </tr>
+
+    </table>
